@@ -1,11 +1,17 @@
 import cv2
 import glob, os
 import numpy as np
-
 import imutils
+from PIL import Image
+import pytesseract
+import re
+import time
 
+DEBUG = True
 
 def showIMG(mat, name, delay=0):
+    if not DEBUG:
+        return
     cv2.namedWindow(name, cv2.WINDOW_KEEPRATIO)
     cv2.imshow(name, mat)
     cv2.resizeWindow(name, 1000, 1000)
@@ -23,7 +29,6 @@ def splitChit(original):
     # finding contours
     cnts = cv2.findContours(edged, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     cnts = cnts[0] if imutils.is_cv2() else cnts[1]
-    print(len(cnts))
     cnts = filter(lambda x: original.shape[0] * original.shape[1] / 6 < cv2.contourArea(x), cnts)
     screenCnt = []
     for c in cnts:
@@ -71,7 +76,23 @@ def rotateChit(chit):
 
     return imutils.rotate_bound(chit, 90 if leftfill<rightfill else 270)
 
+def getNumber(chit):
+    tmp = chit[300:370, 90:270]
+    cv2.threshold(tmp, 127, 255, cv2.THRESH_BINARY)
+    cv2.imwrite("tmp.jpg", chit[300:370, 90:270]) # write croped image to disk
+    text = pytesseract.image_to_string(Image.open("tmp.jpg"))
+    #TODO remove not wanted chars
+    if not re.compile("[0-9][0-9]?[A-D]").match(text):
+        return None
+    if len(text) == 2:
+        text = "0"+text
+    return text
+
+#MAIN PROGRAMM
 os.chdir("data")
+dataset = []
+print("Started Running...")
+timer = time.time()
 for file in glob.glob("*.[Jj][Pp][Gg]"):
     #display original file
     original = cv2.imread(""+file)
@@ -83,3 +104,13 @@ for file in glob.glob("*.[Jj][Pp][Gg]"):
     #show them
     for chit in chits:
         showIMG(chit, "chit")
+        number = getNumber(chit)
+        if number==None:
+            continue
+        dataset.append(number)
+
+for d in dataset:
+    print(d)
+timer = time.time() - timer
+print("Recognized:" + str(len(dataset)))
+print("This took %d seconds" % timer)
