@@ -7,7 +7,8 @@ import pytesseract
 import re
 import time
 
-DEBUG = True
+DEBUG = False
+
 
 def showIMG(mat, name, delay=0):
     if not DEBUG:
@@ -18,12 +19,13 @@ def showIMG(mat, name, delay=0):
     cv2.waitKey(delay)
     cv2.destroyWindow(name)
 
+
 def splitChit(original):
     # edge detection
     gray = cv2.cvtColor(original, cv2.COLOR_BGR2GRAY)
-    gray = cv2.GaussianBlur(original, (5, 5), 0)
+    gray = cv2.GaussianBlur(gray, (5, 5), 0)
     edged = cv2.Canny(gray, 75, 200)
-    #showIMG(edged, "Canny")
+    # showIMG(edged, "Canny")
     edged = cv2.GaussianBlur(edged, (3, 3), 0)
 
     # finding contours
@@ -37,9 +39,9 @@ def splitChit(original):
         if len(approx) == 4:
             screenCnt.append(approx)
     # show contours
-    #contourImage = original.copy()
-    #cv2.drawContours(contourImage, screenCnt, -1, (0, 255, 0), 5)
-    #showIMG(contourImage, "contours")
+    # contourImage = original.copy()
+    # cv2.drawContours(contourImage, screenCnt, -1, (0, 255, 0), 5)
+    # showIMG(contourImage, "contours")
 
     # create individual Images
     chits = []
@@ -59,56 +61,74 @@ def splitChit(original):
         chits.append(dst)
     return chits
 
-#iput: single chit in landscape orientation (top either on the left or right)
-#returns: chit in portrait mode
+
+# iput: single chit in landscape orientation (top either on the left or right)
+# returns: chit in portrait mode
 def rotateChit(chit):
     rows, cols, _ = chit.shape
     grey = cv2.cvtColor(chit, cv2.COLOR_BGR2GRAY)
     leftfill = 0
     for c in range(cols):
-        for r in range(round(rows*0.05)):
+        for r in range(round(rows * 0.05)):
             leftfill += grey[r][c]
 
     rightfill = 0
     for c in range(cols):
-        for r in range(round(rows*0.95), rows):
+        for r in range(round(rows * 0.95), rows):
             leftfill += grey[r][c]
 
-    return imutils.rotate_bound(chit, 90 if leftfill<rightfill else 270)
+    return imutils.rotate_bound(chit, 90 if leftfill < rightfill else 270)
+
 
 def getNumber(chit):
     tmp = chit[300:370, 90:270]
     cv2.threshold(tmp, 127, 255, cv2.THRESH_BINARY)
-    cv2.imwrite("tmp.jpg", chit[300:370, 90:270]) # write croped image to disk
-    text = pytesseract.image_to_string(Image.open("tmp.jpg"))
-    #TODO remove not wanted chars
+    cv2.imwrite("tmp.jpg", chit[300:370, 90:270])  # write croped image to disk
+    text = pytesseract.image_to_string(Image.open("tmp.jpg"), config="-c tessedit_char_whitelist=ABCD0123456789")
     if not re.compile("[0-9][0-9]?[A-D]").match(text):
         return None
     if len(text) == 2:
-        text = "0"+text
+        text = "0" + text
     return text
 
-#MAIN PROGRAMM
+
+#TODO rewrite with Tensorflow
+def getPoints(chit):
+    upper = chit[1330:1490, 800:999]
+    cv2.imwrite("tmp2.jpg", upper)
+    text = pytesseract.image_to_string(Image.open("tmp2.jpg"), config="-c tessedit_char_whitelist=0123456789")
+    text = text.replace(" ", "")
+    text = text.replace("\n", "")
+    if text == "":
+        return -1
+    return int(text)
+
+
+# MAIN PROGRAMM
 os.chdir("data")
 dataset = []
 print("Started Running...")
 timer = time.time()
 for file in glob.glob("*.[Jj][Pp][Gg]"):
-    #display original file
-    original = cv2.imread(""+file)
+    # display original file
+    original = cv2.imread("" + file)
     showIMG(original, "original")
 
     chits = splitChit(original)
 
-    chits = map(lambda x: rotateChit(x),chits)
-    #show them
+    chits = map(lambda x: rotateChit(x), chits)
+    # show them
     for chit in chits:
         showIMG(chit, "chit")
         number = getNumber(chit)
-        if number==None:
+        points = 0
+        points = getPoints(chit)
+        if number == None:
             continue
-        dataset.append(number)
+        dataset.append([number, points])
+        print([number, points])
 
+dataset.sort(key=lambda date: date[0])
 for d in dataset:
     print(d)
 timer = time.time() - timer
