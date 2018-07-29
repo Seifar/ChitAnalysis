@@ -127,11 +127,11 @@ for file in glob.glob("*.[Jj][Pp][Gg]"):
         points = getPoints(chit)
         if number == None:
             continue
-        dataset.append([number, points])
+        dataset.append({CSVHelper.TARGET:number, CSVHelper.SCORE:points, CSVHelper.TEN:0, CSVHelper.X:0})
         print([number, points])
 
 #cleanup dataset & write to csv
-dataset.sort(key=lambda date: date[0])
+dataset.sort(key=lambda date: date[CSVHelper.TARGET])
 os.chdir(startDir)
 CSVHelper.Writer("score.csv").writeAll(dataset)
 
