@@ -6,6 +6,7 @@ from PIL import Image
 import pytesseract
 import re
 import time
+import CSVHelper
 
 DEBUG = False
 
@@ -105,6 +106,7 @@ def getPoints(chit):
 
 
 # MAIN PROGRAMM
+startDir = os.getcwd()
 os.chdir("data")
 dataset = []
 print("Started Running...")
@@ -128,9 +130,12 @@ for file in glob.glob("*.[Jj][Pp][Gg]"):
         dataset.append([number, points])
         print([number, points])
 
+#cleanup dataset & write to csv
 dataset.sort(key=lambda date: date[0])
-for d in dataset:
-    print(d)
+os.chdir(startDir)
+CSVHelper.Writer("score.csv").writeAll(dataset)
+
+
 timer = time.time() - timer
 print("Recognized:" + str(len(dataset)))
 print("This took %d seconds" % timer)
