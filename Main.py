@@ -84,8 +84,7 @@ def rotateChit(chit):
 def getNumber(chit):
     tmp = chit[300:370, 90:270]
     cv2.threshold(tmp, 127, 255, cv2.THRESH_BINARY)
-    cv2.imwrite("tmp.jpg", chit[300:370, 90:270])  # write croped image to disk
-    text = pytesseract.image_to_string(Image.open("tmp.jpg"), config="-c tessedit_char_whitelist=ABCD0123456789")
+    text = pytesseract.image_to_string(chit[300:370, 90:270], config="-c tessedit_char_whitelist=ABCD0123456789")
     if not re.compile("[0-9][0-9]?[A-D]").match(text):
         return None
     if len(text) == 2:
@@ -95,9 +94,7 @@ def getNumber(chit):
 
 #TODO rewrite with Tensorflow
 def getPoints(chit):
-    upper = chit[1330:1490, 800:999]
-    cv2.imwrite("tmp2.jpg", upper)
-    text = pytesseract.image_to_string(Image.open("tmp2.jpg"), config="-c tessedit_char_whitelist=0123456789")
+    text = pytesseract.image_to_string(chit[1330:1490, 800:999], config="-c tessedit_char_whitelist=0123456789")
     text = text.replace(" ", "")
     text = text.replace("\n", "")
     if text == "":
