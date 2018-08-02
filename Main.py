@@ -7,6 +7,8 @@ import pytesseract
 import re
 import time
 import CSVHelper
+import multiprocessing
+from multiprocessing.pool import Pool
 
 DEBUG = False
 
@@ -101,18 +103,7 @@ def getPoints(chit):
         return -1
     return int(text)
 
-
-# MAIN PROGRAMM
-startDir = os.getcwd()
-os.chdir("data")
-dataset = []
-print("Started Running...")
-timer = time.time()
-failed = 0
-total = 0
-numOfChits = 0
-for file in glob.glob("*.[Jj][Pp][Gg]"):
-    total = total+1
+def analyseAll(file):
 
     # display original file
     original = cv2.imread("" + file)
@@ -123,16 +114,29 @@ for file in glob.glob("*.[Jj][Pp][Gg]"):
     chits = map(lambda x: rotateChit(x), chits)
     # show them
     for chit in chits:
-        numOfChits = numOfChits+1
-
         showIMG(chit, "chit")
         number = getNumber(chit)
         points = getPoints(chit)
         if number == None:
-            failed = failed+1
             continue
-        dataset.append({CSVHelper.TARGET:number, CSVHelper.SCORE:points, CSVHelper.TEN:0, CSVHelper.X:0})
         print([number, points])
+        return{CSVHelper.TARGET: number, CSVHelper.SCORE: points, CSVHelper.TEN: 0, CSVHelper.X: 0}
+
+
+# MAIN PROGRAMM
+startDir = os.getcwd()
+os.chdir("data")
+dataset = []
+print("Started Running...")
+timer = time.time()
+failed = 0
+total = 0
+numOfChits = 0
+
+threadPool = Pool(processes=multiprocessing.cpu_count()*2)
+
+for i in threadPool.imap_unordered(analyseAll, glob.glob("*.[Jj][Pp][Gg]")):
+    print(i)
 
 #cleanup dataset & write to csv
 dataset.sort(key=lambda date: date[CSVHelper.TARGET])
