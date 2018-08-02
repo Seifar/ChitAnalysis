@@ -4,7 +4,7 @@ A CSV file will be created with the scores so it is easy to import them into [Ap
 
 ## Requirements
 - Unix-like OS
-- Python2
+- Python
 - OpenCV
 - Tesseract
 - other python modules listet as imports on top of Main.py

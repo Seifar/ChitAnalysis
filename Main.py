@@ -108,7 +108,12 @@ os.chdir("data")
 dataset = []
 print("Started Running...")
 timer = time.time()
+failed = 0
+total = 0
+numOfChits = 0
 for file in glob.glob("*.[Jj][Pp][Gg]"):
+    total = total+1
+
     # display original file
     original = cv2.imread("" + file)
     showIMG(original, "original")
@@ -118,11 +123,13 @@ for file in glob.glob("*.[Jj][Pp][Gg]"):
     chits = map(lambda x: rotateChit(x), chits)
     # show them
     for chit in chits:
+        numOfChits = numOfChits+1
+
         showIMG(chit, "chit")
         number = getNumber(chit)
-        points = 0
         points = getPoints(chit)
         if number == None:
+            failed = failed+1
             continue
         dataset.append({CSVHelper.TARGET:number, CSVHelper.SCORE:points, CSVHelper.TEN:0, CSVHelper.X:0})
         print([number, points])
@@ -135,4 +142,5 @@ CSVHelper.Writer("score.csv").writeAll(dataset)
 
 timer = time.time() - timer
 print("Recognized:" + str(len(dataset)))
+print("Number failed: " + str(failed) +" of " + str(numOfChits) + " found chits, " + str(total*4) + " total")
 print("This took %d seconds" % timer)
