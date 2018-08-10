@@ -154,6 +154,6 @@ CSVHelper.Writer("score.csv").writeAll(dataset)
 
 timer = time.time() - timer
 print("Recognized:" + str(len(dataset)))
-print("Number failed: " + str(oldsize - len(dataset)) +" of " + str(len(dataset)) + " found chits, " + str(total*4) + " total")
+print("Number failed: " + str(oldsize - len(dataset)) +" of " + str(oldsize) + " found chits, " + str(total*4) + " total")
 print("This took %d seconds" % timer)
 
