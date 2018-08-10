@@ -2,14 +2,14 @@ import cv2
 import glob, os
 import numpy as np
 import imutils
-from PIL import Image
 import pytesseract
 import re
 import time
 import CSVHelper
+import multiprocessing
+import concurrent.futures as cf
 
 DEBUG = False
-
 
 def showIMG(mat, name, delay=0):
     if not DEBUG:
@@ -101,14 +101,8 @@ def getPoints(chit):
         return -1
     return int(text)
 
-
-# MAIN PROGRAMM
-startDir = os.getcwd()
-os.chdir("data")
-dataset = []
-print("Started Running...")
-timer = time.time()
-for file in glob.glob("*.[Jj][Pp][Gg]"):
+# takes a whole chit file and returns target number, score, 10 and x of
+def analyseAll(file):
     # display original file
     original = cv2.imread("" + file)
     showIMG(original, "original")
@@ -116,23 +110,48 @@ for file in glob.glob("*.[Jj][Pp][Gg]"):
     chits = splitChit(original)
 
     chits = map(lambda x: rotateChit(x), chits)
+    ret = []
     # show them
     for chit in chits:
         showIMG(chit, "chit")
         number = getNumber(chit)
-        points = 0
         points = getPoints(chit)
         if number == None:
+            ret.append(None)
             continue
-        dataset.append({CSVHelper.TARGET:number, CSVHelper.SCORE:points, CSVHelper.TEN:0, CSVHelper.X:0})
         print([number, points])
+        ret.append({CSVHelper.TARGET: number, CSVHelper.SCORE: points, CSVHelper.TEN: 0, CSVHelper.X: 0})
+    return ret
 
-#cleanup dataset & write to csv
-dataset.sort(key=lambda date: date[CSVHelper.TARGET])
-os.chdir(startDir)
-CSVHelper.Writer("score.csv").writeAll(dataset)
+# MAIN PROGRAMM
+if __name__ == "__main__":
+    startDir = os.getcwd()
+    os.chdir("data")
+    dataset = []
+    print("Started Running...")
+    timer = time.time()
+    fileIterator = glob.glob("*.[Jj][Pp][Gg]")
+    total = len(fileIterator)
+
+    # start analysation in a separate process for each chut
+    processPool = cf.ProcessPoolExecutor(max_workers=1 if DEBUG else multiprocessing.cpu_count())
+    for i in fileIterator:
+        dataset.append(processPool.submit(analyseAll, i))
+    cf.wait(dataset)
+
+    #unpack data received from pool
+    dataset = map(lambda  date: date.result(), dataset)
+    dataset = [item for sublist in dataset for item in sublist] #flatten
+
+    #cleanup dataset & write to csv
+    oldsize = len(dataset)
+    dataset = filter(lambda date:date is not None, dataset)
+    dataset = sorted(dataset, key=lambda date: date[CSVHelper.TARGET])
+    os.chdir(startDir)
+    CSVHelper.Writer("score.csv").writeAll(dataset)
 
 
-timer = time.time() - timer
-print("Recognized:" + str(len(dataset)))
-print("This took %d seconds" % timer)
+    timer = time.time() - timer
+    print("Recognized:" + str(len(dataset)))
+    print("Number failed: " + str(oldsize - len(dataset)) +" of " + str(oldsize) + " found chits, " + str(total*4) + " total")
+    print("This took %d seconds" % timer)
