@@ -133,7 +133,7 @@ fileIterator = glob.glob("*.[Jj][Pp][Gg]")
 total = len(fileIterator)
 
 # start analysation in a separate process for each chut
-processPool = cf.ProcessPoolExecutor(max_workers=1 if DEBUG else multiprocessing.cpu_count() * 5)
+processPool = cf.ProcessPoolExecutor(max_workers=1 if DEBUG else multiprocessing.cpu_count())
 for i in fileIterator:
     dataset.append(processPool.submit(analyseAll, i))
 cf.wait(dataset)
