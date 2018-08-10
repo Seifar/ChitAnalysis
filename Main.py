@@ -2,13 +2,11 @@ import cv2
 import glob, os
 import numpy as np
 import imutils
-from PIL import Image
 import pytesseract
 import re
 import time
 import CSVHelper
 import multiprocessing
-from multiprocessing.pool import ThreadPool
 import concurrent.futures as cf
 
 DEBUG = False
