@@ -124,34 +124,34 @@ def analyseAll(file):
     return ret
 
 # MAIN PROGRAMM
-startDir = os.getcwd()
-os.chdir("data")
-dataset = []
-print("Started Running...")
-timer = time.time()
-fileIterator = glob.glob("*.[Jj][Pp][Gg]")
-total = len(fileIterator)
+if __name__ == "__main__":
+    startDir = os.getcwd()
+    os.chdir("data")
+    dataset = []
+    print("Started Running...")
+    timer = time.time()
+    fileIterator = glob.glob("*.[Jj][Pp][Gg]")
+    total = len(fileIterator)
 
-# start analysation in a separate process for each chut
-processPool = cf.ProcessPoolExecutor(max_workers=1 if DEBUG else multiprocessing.cpu_count())
-for i in fileIterator:
-    dataset.append(processPool.submit(analyseAll, i))
-cf.wait(dataset)
+    # start analysation in a separate process for each chut
+    processPool = cf.ProcessPoolExecutor(max_workers=1 if DEBUG else multiprocessing.cpu_count())
+    for i in fileIterator:
+        dataset.append(processPool.submit(analyseAll, i))
+    cf.wait(dataset)
 
-#unpack data received from pool
-dataset = map(lambda  date: date.result(), dataset)
-dataset = [item for sublist in dataset for item in sublist] #flatten
+    #unpack data received from pool
+    dataset = map(lambda  date: date.result(), dataset)
+    dataset = [item for sublist in dataset for item in sublist] #flatten
 
-#cleanup dataset & write to csv
-oldsize = len(dataset)
-dataset = filter(lambda date:date is not None, dataset)
-dataset = sorted(dataset, key=lambda date: date[CSVHelper.TARGET])
-os.chdir(startDir)
-CSVHelper.Writer("score.csv").writeAll(dataset)
+    #cleanup dataset & write to csv
+    oldsize = len(dataset)
+    dataset = filter(lambda date:date is not None, dataset)
+    dataset = sorted(dataset, key=lambda date: date[CSVHelper.TARGET])
+    os.chdir(startDir)
+    CSVHelper.Writer("score.csv").writeAll(dataset)
 
 
-timer = time.time() - timer
-print("Recognized:" + str(len(dataset)))
-print("Number failed: " + str(oldsize - len(dataset)) +" of " + str(oldsize) + " found chits, " + str(total*4) + " total")
-print("This took %d seconds" % timer)
-
+    timer = time.time() - timer
+    print("Recognized:" + str(len(dataset)))
+    print("Number failed: " + str(oldsize - len(dataset)) +" of " + str(oldsize) + " found chits, " + str(total*4) + " total")
+    print("This took %d seconds" % timer)
